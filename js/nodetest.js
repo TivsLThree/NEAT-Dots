@@ -187,6 +187,8 @@ function Network(){
 		n = new Neuron("HIDDEN");
 		
 			n.destination[0] = new Synapse(s.startNeuron,n,s.weight);
+			n.source[0] = new Synapse(n,s.endNeuron,1)
+			this.synapses[this.synapses.length] = n.source[0]
 		}catch(error){
 			console.error(error+": Presumably there were no synapses and as a result no neuron could be created")
 			console.log();
@@ -197,22 +199,42 @@ function Network(){
 		n.x = (((s.startNeuron.type == "INPUT") ? (canvas.width/2): s.startNeuron.x) + s.endNeuron.x)  /2;
 		n.y = (s.startNeuron.y + s.endNeuron.y) / 2;
 		//TODO
-		s.startNeuron.source.splice[/*Need a way to elimanate according to the neuron and not the number. Maybe a hashmap?*/0,1]; //Need to remove the old synapse the connected the to neurons. In this case, s needs to be removed
-		s.endNeuron.destination.splice[/*Same deal as above. Maybe loop through until the identical is found?*/0, 1];
-		s.startNeuron.source[s.startNeuron.source.length] = n.destination[0]; //Add the new synapse(where the new neuron is the destination) to the old source neuron to its source synapses
-		s.endNeuron.destination[s.endNeuron.destination.length] = n.source[0]; //Add the new synapse(where the new neuron is the source) to the old destination neuron to its desintation synapses
-		
+		var a;
+		for(var z = 0; z < s.startNeuron.source.length;z++){
+			if(s.startNeuron.source[z].endNeuron == s.endNeuron){
+				a = z;
+
+				break;
+			}
+		}
+		//TODO: Fix the bug here where s.startNeuron.source[a] is undefined
+		s.startNeuron.source[a].endNeuron = n; //Need to remove the old synapse the connected the to neurons. In this case, s needs to be removed
+	
+		var b;
+		for(var z = 0; z < s.endNeuron.destination.length;z++){
+			if(s.endNeuron.destination[z].startNeuron == s.startNeuron){
+				b = z;
+				break;
+			}
+		}
+		s.endNeuron.destination.splice(b,1);
 		this.hiddenNeurons[this.hiddenNeurons.length] = n;
-		
+		return true;
 	}
 	this.mutateAddSynapse = function(){
 		var s; var dest;
-		
+		var i = 0;
 		do {
+			i++
+			if(i > 10){
+		
+				return false;
+			}
+			console.log(i)
 		s = this.inputNeurons.concat(this.hiddenNeurons)[Math.round(Math.random() * (-1+this.inputNeurons.concat(this.hiddenNeurons).length))];
 		dest = this.outputNeurons.concat(this.hiddenNeurons)[Math.round(Math.random() * (-1+this.outputNeurons.concat(this.hiddenNeurons).length))];
 		
-		}while(checkForRecursiveFeedback(dest) == false);
+		}while(checkForRecursiveFeedback(dest, dest) == false);
 		if(!checkForDuplicateSynapse(s,dest)){
 
 			return false;
@@ -229,14 +251,18 @@ function Network(){
 	
 	/**
 	Input the destination neuron into the check fuction;
+	checkForResursion is broken kinda(?)
+	after a certian ammount of time it becomes locked in an eternal loop. I presume that checkForRecursiveFeedback isn't exiting properly once it fin
 	*/
-		function checkForRecursiveFeedback(neuron){
-			if(s == neuron){
+		function checkForRecursiveFeedback(neuron, dest){
+			for(var k = 0; k < neuron.source.length; k++){
+			if(dest == neuron.source[k].endNeuron){
 				console.log("Attempted add to a synapse that would result in recursive feedback.");
 				return false;
 			}
+		}
 			for(var i = 0; i < neuron.source.length; i++){
-				if(checkForRecursiveFeedback(neuron.source[i].destination) == false){
+				if(checkForRecursiveFeedback(neuron.source[i].endNeuron, dest) == false){
 					return false;
 				}
 			}
@@ -284,7 +310,12 @@ aBrain.init();
 
 
 
-aBrain.mutateAddSynapse()
+aBrain.mutateAddSynapse();
+aBrain.mutateAddSynapse();
+aBrain.mutateAddSynapse();
+aBrain.mutateAddSynapse();
+aBrain.mutateAddSynapse();
+aBrain.mutateAddNeuron();
 
 
 //**Main Loop** //
